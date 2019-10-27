@@ -1,0 +1,219 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <utility>
+#include <algorithm>
+#include "day17-part1.h"
+
+
+//for (int l = 0; l < 13; l++)
+//{
+//	for (int c = 494; c < 507; c++)
+//	{
+//		std::cout << map[l][c];
+//	}
+//	std::cout << "\n";
+//}
+
+class data
+{
+public:
+	data(int _x, int _y, int _lastPosX, int  _lastPosY) : x(_x), y(_y), lastPosX(_lastPosX), lastPosY(_lastPosY) {}
+
+	static bool sortingRule(const data& a, const data& b)
+	{
+		return a.x < b.x ? true : (a.x == b.x ? a.y < b.y : false);
+	}
+
+	int lastPosX, lastPosY;
+	int x, y;
+};
+
+void readInput(std::fstream& in, std::vector<std::vector<char>>& map, int& maxX, int& maxY)
+{
+	char var1, var2, aux;
+	int x, y1, y2;
+
+	while (in >> var1 >> aux >> x >> aux >> var2 >> aux >> y1 >> aux >> aux >> y2)
+	{
+		if (var1 == 'x')
+		{
+			if (y2 > maxX) maxX = y2;
+			if (x > maxY) maxY = x;
+
+			for (int it = y1; it <= y2; it++)
+			{
+				map[it][x] = '#';
+			}
+		}
+		else
+		{
+			if (x > maxX) maxX = x;
+			if (y2 > maxY) maxY = y2;
+
+			for (int it = y1; it <= y2; it++)
+			{
+				map[x][it] = '#';
+			}
+		}
+	}
+	map[0][500] = '+';
+}
+
+
+void solveProblem(std::vector<data>& currWaterPos, int maxX, std::vector<std::vector<char>>& map, int maxY)
+{
+	int aaaa = 1;
+
+	while (currWaterPos[currWaterPos.size() - 1].x <= maxX)
+	{
+		aaaa++;
+		if (aaaa>=210)
+		{
+			for (int l = 0; l <= 120; l++)
+			{
+				for (int c = 400; c <= 580; c++)
+				{
+					std::cout << map[l][c];
+				}
+				std::cout << "\n";
+			}
+			std::cout << "\n\n";
+		}
+		std::vector<data> aux;
+
+		for (std::vector<data>::iterator it = currWaterPos.begin(); it != currWaterPos.end(); it++)
+		{
+			switch (map[(*it).x + 1][(*it).y])
+			{
+			case '.':
+				map[(*it).x + 1][(*it).y] = '|';
+				(*it).x++;
+				break;
+			case '#':
+			case '~':
+				int y1 = (*it).y;
+				int y2 = (*it).y;
+
+				int check = 0;
+
+				while ((y1 >= 0) && (map[(*it).x + 1][y1] != '.') && (map[(*it).x][y1 - 1] != '#'))
+				{
+					map[(*it).x][y1 - 1] = '|';
+					y1--;
+				}
+
+				while ((y2 <= maxY + 1) && (map[(*it).x + 1][y2] != '.') && (map[(*it).x][y2 + 1] != '#'))
+				{
+					map[(*it).x][y2 + 1] = '|';
+					y2++;
+				}
+
+				if (map[(*it).x + 1][y1] == '.')
+				{
+					aux.push_back(data((*it).x, y1, (*it).x, (*it).y));
+					check += 1;
+				}
+
+				if (map[(*it).x + 1][y2] == '.')
+				{
+					aux.push_back(data((*it).x, y2, (*it).x, (*it).y));
+					check += 1;
+				}
+
+				if (check == 0)
+				{
+					for (int c = y1; c <= y2; c++)
+					{
+						map[(*it).x][c] = '~';
+					}
+					(*it).x--;
+					if (((*it).x >= 0) && ((*it).y >= 0) && ((map[(*it).x][(*it).y + 1] == '|') || (map[(*it).x][(*it).y - 1] == '|')))
+					{
+						(*it).x = (*it).lastPosX;
+						(*it).y = (*it).lastPosY;
+					}
+				}
+				else
+				{
+					it = currWaterPos.erase(it);
+				}
+			}
+
+			if (it == currWaterPos.end()) break;
+		}
+
+		for (std::vector<data>::iterator it = aux.begin(); it != aux.end(); it++)
+		{
+			currWaterPos.push_back(*it);
+		}
+
+		std::sort(currWaterPos.begin(), currWaterPos.end(), data::sortingRule);
+		bool check = true;
+
+		for (std::vector<data>::iterator it = currWaterPos.begin();it!=currWaterPos.end()-1; it++)
+		{
+			for (auto it2 = it + 1; it2 != currWaterPos.end(); it2++)
+			{
+				if ((*it).x == (*it2).x)
+				{
+					check = true;
+
+					for (int c = (*it).y; c <= (*it2).y; c++)
+					{
+						if (map[(*it).x + 1][c] == '.')
+						{
+							check = false;
+							break;
+						}
+					}
+
+					if (check)
+					{
+						it = currWaterPos.erase(it);
+						if (it == currWaterPos.end() - 1)
+						{
+							break;
+						}
+					}
+				}
+			}
+			if (it == currWaterPos.end() - 1)
+			{
+				break;
+			}
+		}
+	}
+}
+
+int main()
+{
+	std::fstream in("input.in", std::fstream::in);
+	std::fstream out("output.out", std::fstream::out);
+
+	std::vector<std::vector<char>> map(2000, std::vector<char>(2000,'.'));
+	std::vector<data> currWaterPos(1, data(0, 500, 0, 500));
+	int maxX = 0, maxY = 0;
+
+	readInput(in, map, maxX, maxY);
+	solveProblem(currWaterPos, maxX, map, maxY);
+
+	int num = 0;
+
+	for (int l = 0; l <= 100; l++)
+	{
+		for (int c = 480; c <= 590; c++)
+		{
+			std::cout << map[l][c];
+			if ((map[l][c] == '|') || (map[l][c] == '~'))
+			{
+				num++;
+			}
+		}
+		std::cout << "\n";
+	}
+
+	std::cout << num;
+	in.close();
+	out.close();
+}
